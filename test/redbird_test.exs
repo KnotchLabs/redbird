@@ -39,23 +39,25 @@ defmodule RedbirdTest do
   describe "get" do
     test "when there is value stored it is retrieved" do
       conn =
-        conn(:get, "/")
-        |> sign_conn
+        :get
+        |> conn("/")
+        |> sign_conn()
         |> put_session(:foo, "bar")
         |> send_resp(200, "")
 
       conn =
-        conn(:get, "/")
+        :get
+        |> conn("/")
         |> recycle_cookies(conn)
-        |> sign_conn
+        |> sign_conn()
         |> send_resp(200, "")
 
-      assert conn |> get_session(:foo) == "bar"
+      assert get_session(conn, :foo) == "bar"
     end
 
     test "when there is no session with the key, it returns {:nil, %{}}" do
       key = "redis_session"
-      conn = %{}
+      conn = :get |> conn("/") |> sign_conn()
       options = []
 
       assert {nil, %{}} = REDIS.get(conn, key, options)
@@ -65,17 +67,19 @@ defmodule RedbirdTest do
   describe "put" do
     test "it sets the session properly" do
       conn =
-        conn(:get, "/")
-        |> sign_conn
+        :get
+        |> conn("/")
+        |> sign_conn()
         |> put_session(:foo, "bar")
         |> send_resp(200, "")
 
-      assert conn |> get_session(:foo) == "bar"
+      assert get_session(conn, :foo) == "bar"
     end
 
     test "it allows configuring session expiration" do
       conn =
-        conn(:get, "/")
+        :get
+        |> conn("/")
         |> sign_conn(expiration_in_seconds: 1)
         |> put_session(:foo, "bar")
         |> send_resp(200, "")
@@ -83,9 +87,10 @@ defmodule RedbirdTest do
       :timer.sleep(1000)
 
       conn =
-        conn(:get, "/")
+        :get
+        |> conn("/")
         |> recycle_cookies(conn)
-        |> sign_conn
+        |> sign_conn()
         |> send_resp(200, "")
 
       assert conn |> get_session(:foo) |> is_nil
@@ -96,8 +101,9 @@ defmodule RedbirdTest do
         assert_raise Redbird.RedisError,
                      ~r/Redbird was unable to store the session in redis. Redis Error: FAIL/,
                      fn ->
-                       conn(:get, "/")
-                       |> sign_conn
+                       :get
+                       |> conn("/")
+                       |> sign_conn()
                        |> put_session(:foo, "bar")
                        |> send_resp(200, "")
                      end
@@ -108,7 +114,7 @@ defmodule RedbirdTest do
   describe "delete" do
     test "delete session" do
       key = "redis_session"
-      conn = %{}
+      conn = :get |> conn("/") |> sign_conn()
       options = []
       REDIS.put(conn, key, %{foo: :bar}, options)
       REDIS.delete(conn, key, options)
@@ -118,7 +124,7 @@ defmodule RedbirdTest do
   end
 
   test "redbird_session is preprended to key names by default" do
-    conn = %{}
+    conn = :get |> conn("/") |> sign_conn()
     options = []
     key = REDIS.put(conn, nil, %{foo: :bar}, options)
 
@@ -128,14 +134,18 @@ defmodule RedbirdTest do
   test "user can set their own key namespace" do
     Application.put_env(:redbird, :key_namespace, "test_")
 
-    Redbird.Redis.keys("test_*")
+    "test_*"
+    |> Redbird.Redis.keys()
     |> Redbird.Redis.del()
 
-    conn = %{}
+    conn = :get |> conn("/") |> sign_conn()
     options = []
     key = REDIS.put(conn, nil, %{foo: :bar}, options)
 
     assert key =~ ~r(\Atest_)
     Application.delete_env(:redbird, :key_namespace)
   end
+
+  # TODO: What happens with a non-verifiable key? Return an error? Return the empty result?
+  test "non-verifable key ???"
 end
