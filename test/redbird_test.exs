@@ -1,28 +1,7 @@
 defmodule RedbirdTest do
-  use ExUnit.Case, async: true
-  use Plug.Test
-  alias Plug.Session.REDIS
+  use Redbird.ConnCase
   import Mock
-
-  @default_opts [
-    store: :redis,
-    key: "_session_key"
-  ]
-  @secret String.duplicate("thoughtbot", 8)
-
-  defp sign_plug(options) do
-    options =
-      (options ++ @default_opts)
-      |> Keyword.put(:encrypt, false)
-
-    Plug.Session.init(options)
-  end
-
-  defp sign_conn(conn, options \\ []) do
-    put_in(conn.secret_key_base, @secret)
-    |> Plug.Session.call(sign_plug(options))
-    |> fetch_session
-  end
+  alias Plug.Session.REDIS
 
   setup_all do
     Application.stop(:redbird)
