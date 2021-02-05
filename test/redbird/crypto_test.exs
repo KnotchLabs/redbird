@@ -10,6 +10,7 @@ defmodule Redbird.CryptoTest do
 
       actual = Crypto.sign_key(conn, key)
 
+      refute actual =~ key
       assert {:ok, ^key} = Crypto.verify_key(conn, actual)
     end
   end

@@ -15,7 +15,7 @@ defmodule Redbird.Crypto do
     Plug.Crypto.non_executable_binary_to_term(b, opts)
   end
 
-  # TODO: All of either conn.secret_key_base or Application.get_env ???
+  # TODO: Allow either conn.secret_key_base or Application.get_env ???
   defp key_base(conn) do
     conn.secret_key_base
   end

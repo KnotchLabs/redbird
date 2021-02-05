@@ -1,5 +1,6 @@
 defmodule Plug.Session.REDIS do
   import Redbird.Redis
+  alias Redbird.Crypto
 
   @moduledoc """
   Stores the session in a redis store.
@@ -13,10 +14,12 @@ defmodule Plug.Session.REDIS do
     opts
   end
 
-  def get(_conn, namespaced_key, _init_options) do
-    case get(namespaced_key) do
-      :undefined -> {nil, %{}}
-      value -> {namespaced_key, value |> :erlang.binary_to_term()}
+  def get(conn, namespaced_key, _init_options) do
+    with {:ok, _verified_key} <- Crypto.verify_key(conn, namespaced_key),
+         value when is_binary(value) <- get(namespaced_key) do
+      {namespaced_key, Crypto.safe_binary_to_term(value)}
+    else
+      _ -> {nil, %{}}
     end
   end
 
@@ -24,15 +27,19 @@ defmodule Plug.Session.REDIS do
     put(conn, add_namespace(generate_random_key()), data, init_options)
   end
 
-  def put(_conn, namespaced_key, data, init_options) do
-    value = :erlang.term_to_binary(data)
-
+  def put(conn, namespaced_key, data, init_options) do
     set_key_with_retries(
-      namespaced_key,
-      value,
+      Crypto.sign_key(conn, namespaced_key),
+      :erlang.term_to_binary(data),
       session_expiration(init_options),
       1
     )
+  end
+
+  def delete(conn, redis_key, _init_options) do
+    if :ok == conn |> Crypto.verify_key(redis_key) |> elem(0),
+      do: del(redis_key)
+    :ok
   end
 
   defp set_key_with_retries(key, value, seconds, counter) do
@@ -47,11 +54,6 @@ defmodule Plug.Session.REDIS do
           set_key_with_retries(key, value, seconds, counter + 1)
         end
     end
-  end
-
-  def delete(_conn, redis_key, _init_options) do
-    del(redis_key)
-    :ok
   end
 
   defp add_namespace(key) do
