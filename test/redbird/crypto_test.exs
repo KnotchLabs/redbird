@@ -8,10 +8,10 @@ defmodule Redbird.CryptoTest do
       conn = signed_conn()
       key = "somerediskey"
 
-      actual = Crypto.sign_key(conn, key)
+      actual = Crypto.sign_key(key, conn)
 
       refute actual =~ key
-      assert {:ok, ^key} = Crypto.verify_key(conn, actual)
+      assert {:ok, ^key} = Crypto.verify_key(actual, conn)
     end
   end
 
@@ -19,27 +19,27 @@ defmodule Redbird.CryptoTest do
     test "verifies keys signed using the secret key base and signing salt" do
       conn = signed_conn()
       key = "somerediskey"
-      signed_key = Crypto.sign_key(conn, key)
+      signed_key = Crypto.sign_key(key, conn)
 
-      assert {:ok, ^key} = Crypto.verify_key(conn, signed_key)
+      assert {:ok, ^key} = Crypto.verify_key(signed_key, conn)
     end
 
     test "invalidates keys signed using another secret key base" do
       conn = signed_conn()
       key = "somerediskey"
-      signed_key = Crypto.sign_key(conn, key)
+      signed_key = Crypto.sign_key(key, conn)
       another_conn = signed_conn()
 
-      assert {:error, :invalid} = Crypto.verify_key(another_conn, signed_key)
+      assert {:error, :invalid} = Crypto.verify_key(signed_key, another_conn)
     end
 
     test "invalidates keys that have been tampered with" do
       conn = signed_conn()
       key = "somerediskey"
-      signed_key = Crypto.sign_key(conn, key)
+      signed_key = Crypto.sign_key(key, conn)
       tampered_key = tamper_with_key(signed_key)
 
-      assert {:error, :invalid} = Crypto.verify_key(conn, tampered_key)
+      assert {:error, :invalid} = Crypto.verify_key(tampered_key, conn)
     end
   end
 

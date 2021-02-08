@@ -1,11 +1,11 @@
 defmodule Redbird.Crypto do
-  def sign_key(conn, key, opts \\ []) do
+  def sign_key(key, conn, opts \\ []) do
     conn
     |> key_base()
     |> Plug.Crypto.sign(signing_salt(), key, opts)
   end
 
-  def verify_key(conn, key, opts \\ []) do
+  def verify_key(key, conn, opts \\ []) do
     conn
     |> key_base()
     |> Plug.Crypto.verify(signing_salt(), key, opts)
