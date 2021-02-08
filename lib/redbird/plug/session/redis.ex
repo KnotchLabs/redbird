@@ -15,7 +15,8 @@ defmodule Plug.Session.REDIS do
   end
 
   def get(conn, namespaced_key, _init_options) do
-    with {:ok, _verified_key} <- Crypto.verify_key(conn, namespaced_key),
+    with key when is_binary(key) <- remove_namespace(namespaced_key),
+         {:ok, _verified_key} <- Crypto.verify_key(key, conn),
          value when is_binary(value) <- get(namespaced_key) do
       {namespaced_key, Crypto.safe_binary_to_term(value)}
     else
@@ -24,21 +25,18 @@ defmodule Plug.Session.REDIS do
   end
 
   def put(conn, nil, data, init_options) do
-    put(conn, add_namespace(generate_random_key()), data, init_options)
+    IO.inspect(nil, label: "#{__MODULE__} put with nil")
+    put(conn, prepare_key(conn), data, init_options)
   end
 
-  def put(conn, namespaced_key, data, init_options) do
-    set_key_with_retries(
-      Crypto.sign_key(conn, namespaced_key),
-      :erlang.term_to_binary(data),
-      session_expiration(init_options),
-      1
-    )
+  def put(_conn, key, data, init_options) do
+    IO.inspect(key, label: "#{__MODULE__} put with key")
+    set_key_with_retries(key, :erlang.term_to_binary(data), session_expiration(init_options), 1)
   end
 
   def delete(conn, redis_key, _init_options) do
-    if :ok == conn |> Crypto.verify_key(redis_key) |> elem(0),
-      do: del(redis_key)
+    if deletable_key?(redis_key, conn), do: del(redis_key)
+
     :ok
   end
 
@@ -56,13 +54,25 @@ defmodule Plug.Session.REDIS do
     end
   end
 
-  defp add_namespace(key) do
-    namespace() <> key
+  defp remove_namespace(key) do
+    key |> String.split(namespace(), parts: 2) |> tl() |> hd()
   end
 
   @default_namespace "redbird_session_"
   def namespace do
     Application.get_env(:redbird, :key_namespace, @default_namespace)
+  end
+
+  defp prepare_key(conn) do
+    namespace() <> Crypto.sign_key(generate_random_key(), conn)
+  end
+
+  defp deletable_key?(key, conn) do
+    key
+    |> remove_namespace()
+    |> Crypto.verify_key(conn)
+    |> elem(0)
+    |> Kernel.==(:ok)
   end
 
   defp generate_random_key do
