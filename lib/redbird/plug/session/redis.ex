@@ -24,6 +24,7 @@ defmodule Plug.Session.REDIS do
     end
   end
 
+  # TODO: It looks like it respects the raw key if one is given
   def put(conn, nil, data, init_options) do
     IO.inspect(nil, label: "#{__MODULE__} put with nil")
     put(conn, prepare_key(conn), data, init_options)
