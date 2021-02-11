@@ -4,7 +4,23 @@ defmodule Redbird.CryptoTest do
   alias Redbird.Crypto
 
   describe "sign_key/3" do
-    test "signs the key using the conn secret key base and a signing salt" do
+    setup do
+      on_exit(fn -> Application.delete_env(:redbird, :key_base) end)
+    end
+
+    test "signs the key with configured key base" do
+      Application.put_env(:redbird, :key_base, "abcdef12345")
+
+      conn = Plug.Test.conn(:get, "/")
+      key = "somerediskey"
+
+      actual = Crypto.sign_key(key, conn)
+
+      refute actual =~ key
+      assert {:ok, ^key} = Crypto.verify_key(actual, conn)
+    end
+
+    test "signs the key with the conn secret key base when configured key base is not set" do
       conn = signed_conn()
       key = "somerediskey"
 
@@ -12,6 +28,16 @@ defmodule Redbird.CryptoTest do
 
       refute actual =~ key
       assert {:ok, ^key} = Crypto.verify_key(actual, conn)
+    end
+
+    test "errors when configured key base is not set and conn does not have secret key base" do
+      conn = Plug.Test.conn(:get, "/")
+      key = "somerediskey"
+
+      actual = Crypto.sign_key(key, conn)
+
+      assert {:error, message} = actual
+      assert message =~ ~r/key base is required/i
     end
   end
 
