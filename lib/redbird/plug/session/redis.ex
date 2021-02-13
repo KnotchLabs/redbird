@@ -15,9 +15,11 @@ defmodule Plug.Session.REDIS do
   end
 
   def get(conn, namespaced_key, _init_options) do
+    # IO.inspect(namespaced_key, label: "#{__MODULE__}.get/3")
     with key when is_binary(key) <- remove_namespace(namespaced_key),
          {:ok, _verified_key} <- Crypto.verify_key(key, conn),
          value when is_binary(value) <- get(namespaced_key) do
+      # TODO: I think the 2nd ticket is suggesting that this pass back the key without the namespace
       {namespaced_key, Crypto.safe_binary_to_term(value)}
     else
       _ -> {nil, %{}}
@@ -26,10 +28,11 @@ defmodule Plug.Session.REDIS do
 
   # TODO: It looks like it respects the raw key if one is given
   def put(conn, nil, data, init_options) do
-    IO.inspect(nil, label: "#{__MODULE__} put with nil")
+    # IO.inspect(nil, label: "#{__MODULE__} put with nil")
     put(conn, prepare_key(conn), data, init_options)
   end
 
+  # TODO: The key ALWAYS has to be signed
   def put(_conn, key, data, init_options) do
     IO.inspect(key, label: "#{__MODULE__} put with key")
     set_key_with_retries(key, :erlang.term_to_binary(data), session_expiration(init_options), 1)
@@ -42,6 +45,8 @@ defmodule Plug.Session.REDIS do
   end
 
   defp set_key_with_retries(key, value, seconds, counter) do
+    # IO.inspect({key, Crypto.safe_binary_to_term(value)}, label: "#{__MODULE__}.set_key_with_retries/4")
+
     case setex(%{key: key, value: value, seconds: seconds}) do
       :ok ->
         key

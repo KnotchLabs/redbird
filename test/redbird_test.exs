@@ -91,6 +91,9 @@ defmodule RedbirdTest do
   end
 
   describe "delete" do
+    # TODO: Does running this call the key preparer function?
+    # - No it doesn't
+    # - So this shows that there are two ways to use the library. you can set directly or indirectly
     test "delete session" do
       key = "redis_session"
       conn = :get |> conn("/") |> sign_conn()
@@ -113,9 +116,7 @@ defmodule RedbirdTest do
   test "user can set their own key namespace" do
     Application.put_env(:redbird, :key_namespace, "test_")
 
-    "test_*"
-    |> Redbird.Redis.keys()
-    |> Redbird.Redis.del()
+    ensure_no_keys_with_prefix("test_")
 
     conn = :get |> conn("/") |> sign_conn()
     options = []
@@ -125,6 +126,12 @@ defmodule RedbirdTest do
     Application.delete_env(:redbird, :key_namespace)
   end
 
+  defp ensure_no_keys_with_prefix(prefix) do
+    prefix <> "*"
+    |> Redbird.Redis.keys()
+    |> Redbird.Redis.del()
+  end
+
   # TODO: What happens with a non-verifiable key? Return an error? Return the empty result?
-  test "non-verifable key ???"
+  # test "non-verifable key ???"
 end

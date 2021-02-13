@@ -11,6 +11,7 @@ defmodule Redbird.Redis do
   end
 
   def get(key) do
+    # IO.inspect(key, label: "#{__MODULE__}.get/1")
     pid()
     |> Redix.command!(["GET", key])
     |> case do
@@ -20,6 +21,7 @@ defmodule Redbird.Redis do
   end
 
   def setex(%{key: key, value: value, seconds: seconds}) do
+    # IO.inspect(key, label: "#{__MODULE__}.setex/1")
     pid()
     |> Redix.command(["SETEX", key, seconds, value])
     |> case do
