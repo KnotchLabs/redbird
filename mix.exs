@@ -34,7 +34,7 @@ defmodule Redbird.Mixfile do
       {:mock, "~> 0.3", only: :test},
       {:redix, "~> 1.0.0"},
       {:plug, "~> 1.11"},
-      {:poison, "~> 3.1"}
+      {:ex_marshal, "0.0.10"}
     ]
   end
 end

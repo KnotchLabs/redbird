@@ -16,7 +16,7 @@ defmodule Plug.Session.REDIS do
   def get(_conn, namespaced_key, _init_options) do
     case get(namespaced_key) do
       :undefined -> {nil, %{}}
-      value -> {namespaced_key, value |> Base.decode64!(ignore: :whitespace) |> Poison.decode!()}
+      value -> {namespaced_key, value |> ExMarshal.decode()}
     end
   end
 
@@ -27,8 +27,7 @@ defmodule Plug.Session.REDIS do
   def put(_conn, namespaced_key, data, init_options) do
     value =
       data
-      |> Poison.encode!()
-      |> Base.encode64()
+      |> ExMarshal.encode()
 
     set_key_with_retries(
       namespaced_key,
