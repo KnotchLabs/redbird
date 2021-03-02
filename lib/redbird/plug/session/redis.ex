@@ -16,7 +16,7 @@ defmodule Plug.Session.REDIS do
   def get(_conn, namespaced_key, _init_options) do
     case get(namespaced_key) do
       :undefined -> {nil, %{}}
-      value -> {namespaced_key, value |> :erlang.binary_to_term()}
+      value -> {namespaced_key, value |> ExMarshal.decode()}
     end
   end
 
@@ -25,7 +25,9 @@ defmodule Plug.Session.REDIS do
   end
 
   def put(_conn, namespaced_key, data, init_options) do
-    value = :erlang.term_to_binary(data)
+    value =
+      data
+      |> ExMarshal.encode()
 
     set_key_with_retries(
       namespaced_key,
